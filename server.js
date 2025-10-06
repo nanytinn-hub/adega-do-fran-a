@@ -13,26 +13,32 @@ app.use(cors());
 app.use(bodyParser.json());
 
 // =========================
-// Config Mercado Pago
+// Configurar Mercado Pago
 // =========================
+if (!process.env.MERCADO_PAGO_ACCESS_TOKEN) {
+  console.error("❌ MERCADO_PAGO_ACCESS_TOKEN não definido no .env");
+  process.exit(1);
+}
 mercadopago.configurations.setAccessToken(process.env.MERCADO_PAGO_ACCESS_TOKEN);
 
 // =========================
-// Pastas pedidos
+// Pastas e CSV
 // =========================
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
 const ordersDir = path.join(__dirname, "orders");
 if (!fs.existsSync(ordersDir)) fs.mkdirSync(ordersDir);
 
 const csvFile = path.join(ordersDir, "orders.csv");
 if (!fs.existsSync(csvFile)) {
-  fs.writeFileSync(csvFile, `"Data/Hora","Produto","Quantidade","Valor Total","Nome Cliente","Status"\n`);
+  fs.writeFileSync(
+    csvFile,
+    `"Data/Hora","Produto","Quantidade","Valor Total","Nome Cliente","Status"\n`
+  );
 }
 
-// =========================
-// Função para salvar no CSV
-// =========================
+// Função para salvar pedido no CSV
 function saveOrderCSV(order) {
   const line = `"${order["Data/Hora"]}","${order["Produto"]}","${order["Quantidade"]}","${order["Valor Total"]}","${order["Nome Cliente"]}","${order["Status"]}"\n`;
   fs.appendFileSync(csvFile, line);
@@ -56,12 +62,13 @@ app.post("/save_order", (req, res) => {
 });
 
 // =========================
-// Checkout Pix
+// Gerar pagamento Pix
 // =========================
 app.post("/process_pix", async (req, res) => {
   try {
     const { transaction_amount, payer } = req.body;
-    const payment_data = {
+
+    const paymentData = {
       transaction_amount: Number(transaction_amount),
       description: "Compra na Adega Douglas França",
       payment_method_id: "pix",
@@ -72,12 +79,13 @@ app.post("/process_pix", async (req, res) => {
       }
     };
 
-    const payment = await mercadopago.payment.create(payment_data);
-    const pixData = payment.response.point_of_interaction?.transaction_data;
+    const payment = await mercadopago.payment.create(paymentData);
+
+    const pixData = payment.point_of_interaction?.transaction_data;
 
     res.json({
-      id: payment.response.id,
-      status: payment.response.status,
+      id: payment.id,
+      status: payment.status,
       qr_code: pixData?.qr_code || null,
       qr_code_base64: pixData?.qr_code_base64 || null
     });
@@ -88,7 +96,7 @@ app.post("/process_pix", async (req, res) => {
 });
 
 // =========================
-// Consultar status pagamento
+// Consultar status do pagamento
 // =========================
 app.get("/payment_status/:id", async (req, res) => {
   try {
@@ -101,18 +109,22 @@ app.get("/payment_status/:id", async (req, res) => {
 });
 
 // =========================
-// Relatório CSV
+// CSV do relatório de vendas
 // =========================
 app.get("/admin/orders/csv", (req, res) => res.sendFile(csvFile));
 
 // =========================
-// Frontend
+// Servir frontend
 // =========================
 app.use(express.static(path.join(__dirname, "../frontend")));
-app.get("/", (req, res) => res.sendFile(path.join(__dirname, "../frontend/index.html")));
+app.get("/", (req, res) =>
+  res.sendFile(path.join(__dirname, "../frontend/index.html"))
+);
 
 // =========================
 // Iniciar servidor
 // =========================
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`✅ Backend Pix rodando em http://localhost:${PORT}`));
+app.listen(PORT, () =>
+  console.log(`✅ Backend Pix rodando em http://localhost:${PORT}`)
+);
