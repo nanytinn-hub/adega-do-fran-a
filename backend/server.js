@@ -15,18 +15,17 @@ app.use(cors());
 app.use(bodyParser.json());
 
 // =========================
-// Config Mercado Pago
-// =========================
+// Config Mercado Pago (v2)
 if (!process.env.MERCADO_PAGO_ACCESS_TOKEN) {
   console.error("❌ MERCADO_PAGO_ACCESS_TOKEN não definido!");
   process.exit(1);
 }
 
-mercadopago.configurations.setAccessToken(process.env.MERCADO_PAGO_ACCESS_TOKEN);
+// Inicializa o client
+const mp = new mercadopago({ access_token: process.env.MERCADO_PAGO_ACCESS_TOKEN });
 
 // =========================
 // Pastas pedidos
-// =========================
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ordersDir = path.join(__dirname, "orders");
@@ -39,7 +38,6 @@ if (!fs.existsSync(csvFile)) {
 
 // =========================
 // Função para salvar no CSV
-// =========================
 function saveOrderCSV(order) {
   const line = `"${order["Data/Hora"]}","${order["Produto"]}","${order["Quantidade"]}","${order["Valor Total"]}","${order["Nome Cliente"]}","${order["Status"]}"\n`;
   fs.appendFileSync(csvFile, line);
@@ -47,7 +45,6 @@ function saveOrderCSV(order) {
 
 // =========================
 // Rota para salvar pedido via frontend
-// =========================
 app.post("/save_order", (req, res) => {
   try {
     const order = req.body;
@@ -64,7 +61,6 @@ app.post("/save_order", (req, res) => {
 
 // =========================
 // Checkout Pix
-// =========================
 app.post("/process_pix", async (req, res) => {
   try {
     const { transaction_amount, payer } = req.body;
@@ -80,7 +76,7 @@ app.post("/process_pix", async (req, res) => {
       }
     };
 
-    const payment = await mercadopago.payment.create(payment_data);
+    const payment = await mp.payment.create(payment_data);
 
     const pixData = payment.response.point_of_interaction?.transaction_data;
 
@@ -98,10 +94,9 @@ app.post("/process_pix", async (req, res) => {
 
 // =========================
 // Consultar status pagamento
-// =========================
 app.get("/payment_status/:id", async (req, res) => {
   try {
-    const payment = await mercadopago.payment.get(req.params.id);
+    const payment = await mp.payment.get(req.params.id);
     res.json({ status: payment.response.status });
   } catch (err) {
     console.error("Erro status:", err);
@@ -111,17 +106,14 @@ app.get("/payment_status/:id", async (req, res) => {
 
 // =========================
 // Relatório CSV
-// =========================
 app.get("/admin/orders/csv", (req, res) => res.sendFile(csvFile));
 
 // =========================
 // Frontend
-// =========================
 app.use(express.static(path.join(__dirname, "../frontend")));
 app.get("/", (req, res) => res.sendFile(path.join(__dirname, "../frontend/index.html")));
 
 // =========================
 // Iniciar servidor
-// =========================
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`✅ Backend Pix rodando na porta ${PORT}`));
