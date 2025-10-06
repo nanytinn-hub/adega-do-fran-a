@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Adega Douglas França</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>Adega Douglas França</h1>
+  <p>Venda rápida com Pix e relatório</p>
+</header>
+
+<main>
+  <section id="venda-form">
+    <h2>Registrar Venda</h2>
+    <input type="text" id="product_name" placeholder="Nome do Produto" required>
+    <input type="number" id="quantity" placeholder="Quantidade" min="1" required>
+    <input type="number" step="0.01" id="price" placeholder="Valor (R$)" required>
+    <input type="text" id="client_name" placeholder="Nome do Cliente" required>
+    <button id="pixBtn">Gerar Pix</button>
+  </section>
+
+  <section id="pixContainer"></section>
+
+  <section id="salesReportSection">
+    <h2>📊 Relatório de Vendas</h2>
+    <button id="loadReportBtn">Carregar Vendas</button>
+    <table id="salesTable">
+      <thead>
+        <tr>
+          <th>Data/Hora</th>
+          <th>Produto</th>
+          <th>Quantidade</th>
+          <th>Valor Total</th>
+          <th>Cliente</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </section>
+</main>
+
+<script src="script.js"></script>
+</body>
+</html>

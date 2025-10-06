@@ -1,0 +1,70 @@
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f3f3f3;
+  margin: 0;
+  padding: 0;
+}
+
+header {
+  text-align: center;
+  background-color: #4b1f6b;
+  color: white;
+  padding: 20px;
+}
+
+main {
+  max-width: 600px;
+  margin: 20px auto;
+  padding: 15px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+input {
+  width: 100%;
+  padding: 8px;
+  margin: 6px 0;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+
+button {
+  width: 100%;
+  padding: 10px;
+  background-color: #4b1f6b;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+button:hover { background-color: #6e3397; }
+
+#pixContainer { margin-top: 20px; text-align: center; }
+
+#pixContainer img { max-width: 250px; margin-bottom: 10px; }
+
+#pixContainer textarea { width: 100%; height: 80px; font-size: 14px; }
+
+table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+
+th, td { border: 1px solid #ccc; padding: 6px; text-align: center; }
+
+th { background-color: #4b1f6b; color: white; }
+
+/* =========================
+   Responsividade para celular
+========================= */
+@media (max-width: 600px) {
+  main {
+    margin: 10px;
+    padding: 10px;
+  }
+  header h1 { font-size: 1.2em; }
+  input, button, textarea { font-size: 0.9em; }
+  #pixContainer img { max-width: 100%; height: auto; }
+  table { font-size: 0.8em; }
+  th, td { padding: 4px; }
+}
