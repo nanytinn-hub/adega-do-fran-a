@@ -7,12 +7,9 @@ const pixContainer = document.getElementById("pixContainer");
 const loadReportBtn = document.getElementById("loadReportBtn");
 const salesTableBody = document.querySelector("#salesTable tbody");
 
-// Para Render, o frontend chama o backend no mesmo domínio
+// Render: backend e frontend no mesmo domínio
 const BACKEND_URL = window.location.origin;
 
-// =========================
-// Gerar Pix e salvar pedido aprovado
-// =========================
 pixBtn.onclick = async () => {
   const product_name = productInput.value.trim();
   const quantity = Number(quantityInput.value);
@@ -24,11 +21,7 @@ pixBtn.onclick = async () => {
   }
 
   const transaction_amount = quantity * price;
-  const payer = {
-    email: client_name.replace(/\s+/g,'').toLowerCase()+'@example.com',
-    first_name: client_name,
-    last_name: ""
-  };
+  const payer = { email: client_name.replace(/\s+/g,'').toLowerCase()+'@example.com', first_name: client_name, last_name: "" };
 
   try {
     const r = await fetch(`${BACKEND_URL}/process_pix`, {
@@ -95,9 +88,6 @@ pixBtn.onclick = async () => {
   }
 };
 
-// =========================
-// Carregar relatório do CSV
-// =========================
 loadReportBtn.onclick = async () => {
   try {
     const resp = await fetch(`${BACKEND_URL}/admin/orders/csv`);

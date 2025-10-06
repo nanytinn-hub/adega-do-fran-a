@@ -5,17 +5,16 @@ import dotenv from "dotenv";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
-import mercadopago from "mercadopago";
+import mercadopagoPkg from "mercadopago";
 
 dotenv.config();
+
+const mercadopago = mercadopagoPkg.default || mercadopagoPkg;
+mercadopago.configurations.setAccessToken(process.env.MERCADO_PAGO_ACCESS_TOKEN);
+
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
-
-// =========================
-// Config Mercado Pago
-// =========================
-mercadopago.configurations.setAccessToken(process.env.MERCADO_PAGO_ACCESS_TOKEN);
 
 // =========================
 // Pastas pedidos
@@ -61,23 +60,21 @@ app.post("/save_order", (req, res) => {
 app.post("/process_pix", async (req, res) => {
   try {
     const { transaction_amount, payer } = req.body;
-    const payment_data = {
+    const payment = await mercadopago.payment.create({
       transaction_amount: Number(transaction_amount),
       description: "Compra na Adega Douglas França",
       payment_method_id: "pix",
       payer: {
         email: payer.email || "",
-        first_name: payer.first_name || "",
+        first_name: payer.first_name,
         last_name: payer.last_name || ""
       }
-    };
+    });
 
-    const payment = await mercadopago.payment.create(payment_data);
-    const pixData = payment.response.point_of_interaction?.transaction_data;
-
+    const pixData = payment.point_of_interaction?.transaction_data;
     res.json({
-      id: payment.response.id,
-      status: payment.response.status,
+      id: payment.id,
+      status: payment.status,
       qr_code: pixData?.qr_code || null,
       qr_code_base64: pixData?.qr_code_base64 || null
     });
