@@ -10,7 +10,6 @@ import mercadopagoPkg from "mercadopago";
 dotenv.config();
 
 const mercadopago = mercadopagoPkg.default || mercadopagoPkg;
-mercadopago.configurations.setAccessToken(process.env.MERCADO_PAGO_ACCESS_TOKEN);
 
 const app = express();
 app.use(cors());
@@ -38,28 +37,13 @@ function saveOrderCSV(order) {
 }
 
 // =========================
-// Rota para salvar pedido via frontend
-// =========================
-app.post("/save_order", (req, res) => {
-  try {
-    const order = req.body;
-    if (!order || !order["Produto"] || !order["Nome Cliente"]) {
-      return res.status(400).json({ error: "Dados incompletos" });
-    }
-    saveOrderCSV(order);
-    res.json({ success: true });
-  } catch (err) {
-    console.error("Erro ao salvar pedido:", err);
-    res.status(500).json({ error: "Erro ao salvar pedido" });
-  }
-});
-
-// =========================
 // Checkout Pix
 // =========================
 app.post("/process_pix", async (req, res) => {
   try {
     const { transaction_amount, payer } = req.body;
+
+    // Cria pagamento diretamente passando access_token no body
     const payment = await mercadopago.payment.create({
       transaction_amount: Number(transaction_amount),
       description: "Compra na Adega Douglas França",
@@ -68,7 +52,8 @@ app.post("/process_pix", async (req, res) => {
         email: payer.email || "",
         first_name: payer.first_name,
         last_name: payer.last_name || ""
-      }
+      },
+      access_token: process.env.MERCADO_PAGO_ACCESS_TOKEN
     });
 
     const pixData = payment.point_of_interaction?.transaction_data;
@@ -83,33 +68,3 @@ app.post("/process_pix", async (req, res) => {
     res.status(500).json({ error: "Erro ao criar Pix" });
   }
 });
-
-// =========================
-// Consultar status pagamento
-// =========================
-app.get("/payment_status/:id", async (req, res) => {
-  try {
-    const payment = await mercadopago.payment.get(req.params.id);
-    res.json({ status: payment.response.status });
-  } catch (err) {
-    console.error("Erro status:", err);
-    res.status(500).json({ error: "Erro ao consultar status" });
-  }
-});
-
-// =========================
-// Relatório CSV
-// =========================
-app.get("/admin/orders/csv", (req, res) => res.sendFile(csvFile));
-
-// =========================
-// Frontend
-// =========================
-app.use(express.static(path.join(__dirname, "../frontend")));
-app.get("/", (req, res) => res.sendFile(path.join(__dirname, "../frontend/index.html")));
-
-// =========================
-// Iniciar servidor
-// =========================
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`✅ Backend Pix rodando em http://localhost:${PORT}`));
