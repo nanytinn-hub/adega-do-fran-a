@@ -5,7 +5,7 @@ import dotenv from "dotenv";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
-import { MercadoPagoConfig, Payment } from "mercadopago";
+import mercadopago from "mercadopago";
 
 dotenv.config();
 const app = express();
@@ -15,8 +15,7 @@ app.use(bodyParser.json());
 // =========================
 // Config Mercado Pago
 // =========================
-const client = new MercadoPagoConfig({ accessToken: process.env.MERCADO_PAGO_ACCESS_TOKEN });
-const paymentClient = new Payment(client);
+mercadopago.configurations.setAccessToken(process.env.MERCADO_PAGO_ACCESS_TOKEN);
 
 // =========================
 // Pastas pedidos
@@ -61,20 +60,24 @@ app.post("/save_order", (req, res) => {
 // =========================
 app.post("/process_pix", async (req, res) => {
   try {
-    const { transaction_amount, payer, items } = req.body;
-    const payerData = { email: payer.email || "", first_name: payer.first_name, last_name: payer.last_name || "" };
-    const payment = await paymentClient.create({
-      body: {
-        transaction_amount: Number(transaction_amount),
-        description: "Compra na Adega Douglas França",
-        payment_method_id: "pix",
-        payer: payerData
+    const { transaction_amount, payer } = req.body;
+    const payment_data = {
+      transaction_amount: Number(transaction_amount),
+      description: "Compra na Adega Douglas França",
+      payment_method_id: "pix",
+      payer: {
+        email: payer.email || "",
+        first_name: payer.first_name || "",
+        last_name: payer.last_name || ""
       }
-    });
-    const pixData = payment.point_of_interaction?.transaction_data;
+    };
+
+    const payment = await mercadopago.payment.create(payment_data);
+    const pixData = payment.response.point_of_interaction?.transaction_data;
+
     res.json({
-      id: payment.id,
-      status: payment.status,
+      id: payment.response.id,
+      status: payment.response.status,
       qr_code: pixData?.qr_code || null,
       qr_code_base64: pixData?.qr_code_base64 || null
     });
@@ -89,8 +92,8 @@ app.post("/process_pix", async (req, res) => {
 // =========================
 app.get("/payment_status/:id", async (req, res) => {
   try {
-    const payment = await paymentClient.get({ id: req.params.id });
-    res.json({ status: payment.status });
+    const payment = await mercadopago.payment.get(req.params.id);
+    res.json({ status: payment.response.status });
   } catch (err) {
     console.error("Erro status:", err);
     res.status(500).json({ error: "Erro ao consultar status" });
@@ -111,4 +114,5 @@ app.get("/", (req, res) => res.sendFile(path.join(__dirname, "../frontend/index.
 // =========================
 // Iniciar servidor
 // =========================
-app.listen(3000, () => console.log("✅ Backend Pix rodando em http://localhost:3000"));
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`✅ Backend Pix rodando em http://localhost:${PORT}`));

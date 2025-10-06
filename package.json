@@ -2,23 +2,14 @@
   "name": "adega-douglas-franca",
   "version": "1.0.0",
   "type": "module",
-  "description": "Loja online Adega Douglas França com pagamento via Pix Mercado Pago e relatório de vendas",
-  "main": "backend/server.js",
   "scripts": {
-    "start": "node backend/server.js",
-    "dev": "nodemon backend/server.js"
+    "start": "node backend/server.js"
   },
-  "keywords": ["loja", "pix", "mercadopago", "express", "nodejs"],
-  "author": "Douglas França",
-  "license": "MIT",
   "dependencies": {
     "body-parser": "^1.20.2",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "mercadopago": "^2.6.6"
-  },
-  "devDependencies": {
-    "nodemon": "^3.0.3"
   }
 }

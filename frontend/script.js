@@ -7,7 +7,8 @@ const pixContainer = document.getElementById("pixContainer");
 const loadReportBtn = document.getElementById("loadReportBtn");
 const salesTableBody = document.querySelector("#salesTable tbody");
 
-const BACKEND_URL = window.location.hostname.includes("ngrok") ? window.location.origin : "http://localhost:3000";
+// Para Render, o frontend chama o backend no mesmo domínio
+const BACKEND_URL = window.location.origin;
 
 // =========================
 // Gerar Pix e salvar pedido aprovado
@@ -35,8 +36,18 @@ pixBtn.onclick = async () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ transaction_amount, payer })
     });
+
+    if (!r.ok) {
+      const errText = await r.text();
+      console.error("Erro HTTP ao gerar Pix:", errText);
+      return alert("Erro ao gerar Pix. Verifique o console.");
+    }
+
     const data = await r.json();
-    if (!data.qr_code_base64) return alert("Erro ao gerar Pix.");
+    if (!data.qr_code_base64) {
+      console.error("Resposta inválida do backend:", data);
+      return alert("Erro ao gerar Pix. Resposta inválida.");
+    }
 
     pixContainer.innerHTML = `
       <h3>📱 Pague com Pix</h3>
@@ -46,36 +57,41 @@ pixBtn.onclick = async () => {
     `;
 
     const checkStatus = async () => {
-      const resp = await fetch(`${BACKEND_URL}/payment_status/${data.id}`);
-      const status = await resp.json();
+      try {
+        const resp = await fetch(`${BACKEND_URL}/payment_status/${data.id}`);
+        const status = await resp.json();
 
-      if (status.status === "approved") {
-        await fetch(`${BACKEND_URL}/save_order`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            "Data/Hora": new Date().toLocaleString(),
-            "Produto": product_name,
-            "Quantidade": quantity,
-            "Valor Total": transaction_amount.toFixed(2),
-            "Nome Cliente": client_name,
-            "Status": "approved"
-          })
-        });
-        alert("✅ Venda concluída! Pedido salvo.");
-        productInput.value = quantityInput.value = priceInput.value = clientInput.value = "";
-        pixContainer.innerHTML = "";
-      } else if (status.status === "rejected") {
-        alert("❌ Pagamento rejeitado.");
-      } else {
-        setTimeout(checkStatus, 3000);
+        if (status.status === "approved") {
+          await fetch(`${BACKEND_URL}/save_order`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              "Data/Hora": new Date().toLocaleString(),
+              "Produto": product_name,
+              "Quantidade": quantity,
+              "Valor Total": transaction_amount.toFixed(2),
+              "Nome Cliente": client_name,
+              "Status": "approved"
+            })
+          });
+          alert("✅ Venda concluída! Pedido salvo.");
+          productInput.value = quantityInput.value = priceInput.value = clientInput.value = "";
+          pixContainer.innerHTML = "";
+        } else if (status.status === "rejected") {
+          alert("❌ Pagamento rejeitado.");
+        } else {
+          setTimeout(checkStatus, 3000);
+        }
+      } catch (err) {
+        console.error("Erro ao verificar status do pagamento:", err);
+        setTimeout(checkStatus, 5000);
       }
     };
     checkStatus();
 
   } catch (err) {
-    console.error(err);
-    alert("Erro ao gerar Pix.");
+    console.error("Erro ao gerar Pix:", err);
+    alert("Erro ao gerar Pix. Verifique o console.");
   }
 };
 
@@ -85,9 +101,9 @@ pixBtn.onclick = async () => {
 loadReportBtn.onclick = async () => {
   try {
     const resp = await fetch(`${BACKEND_URL}/admin/orders/csv`);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const text = await resp.text();
 
-    // Quebra linhas e remove o cabeçalho
     const lines = text.trim().split("\n").slice(1);
     salesTableBody.innerHTML = "";
 
@@ -97,7 +113,6 @@ loadReportBtn.onclick = async () => {
     }
 
     lines.forEach(line => {
-      // Divide corretamente os campos entre aspas mesmo com espaços
       const values = line.split('","').map(v => v.replace(/^"|"$/g, ""));
       const tr = document.createElement("tr");
       tr.innerHTML = `
@@ -112,7 +127,7 @@ loadReportBtn.onclick = async () => {
     });
 
   } catch (err) {
-    console.error(err);
+    console.error("Erro ao carregar CSV:", err);
     salesTableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:red;">Erro ao carregar vendas.</td></tr>`;
   }
 };
